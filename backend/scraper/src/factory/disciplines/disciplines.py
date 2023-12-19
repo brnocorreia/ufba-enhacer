@@ -1,6 +1,9 @@
 import time
+from typing import List
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
+from selenium.common.exceptions import NoSuchElementException
+from selenium.webdriver.remote.webelement import WebElement
 from psycopg2.errors import UniqueViolation
 
 from src.interfaces.driver import Driver
@@ -30,45 +33,53 @@ class Disciplines:
             if not checker.get_attribute('colspan'):
                 name = line.find_elements(By.TAG_NAME, 'td')[3].text
                 code = line.find_elements(By.TAG_NAME, 'td')[2].text
-                line.find_elements(By.TAG_NAME, 'td')[3].find_element(By.TAG_NAME, 'a').click()
-                discipline = self.__extract_discipline_info(name, code)
-                try: 
-                    cursor.execute(sql, (
-                        discipline.code,
-                        discipline.name,
-                        discipline.workload,
-                        discipline.department,
-                        discipline.program,
-                        discipline.objective,
-                        discipline.content,
-                        discipline.bibliography
-                    ))
-                    conn.commit()
-                except UniqueViolation:
-                    conn.commit()
+                try:
+                    link = line.find_elements(By.TAG_NAME, 'td')[3].find_element(By.TAG_NAME, 'a')
+                    link.click()
+                    discipline = self.__extract_discipline_info(name, code)
+                    try: 
+                        cursor.execute(sql, (
+                            discipline.code,
+                            discipline.name,
+                            discipline.workload,
+                            discipline.department,
+                            discipline.program,
+                            discipline.objective,
+                            discipline.content,
+                            discipline.bibliography
+                        ))
+                        conn.commit()
+                    except UniqueViolation:
+                        conn.commit()
 
-                self._driver.back()
-        
+                    self._driver.back()
+                except NoSuchElementException:
+                    pass
+                    
         self._driver.back()
         self._driver.back()
 
         cursor.close()
         conn.close()
                 
-        
-
     def __access_course(self):
         self._driver.get(vars.Course.URL)
-        table = self._driver.find_element(vars.Course.TABLE, 10, EC.presence_of_element_located)
-        tbody = table.find_element(By.TAG_NAME, 'tbody')
-        lines = tbody.find_elements(By.TAG_NAME, 'tr')
+        lines = self.__get_lines()
 
-        for line in lines[1:]:
-            line.find_elements(By.TAG_NAME, 'td')[1].find_element(By.TAG_NAME, 'a').click()
+        for i in range(1, len(lines)):
+            lines = self.__get_lines()
+
+            lines[i].find_elements(By.TAG_NAME, 'td')[1].find_element(By.TAG_NAME, 'a').click()
             self._driver.find_element(vars.Course.OBLIGATEDS, 10, EC.element_to_be_clickable).click()
 
             self.__access_discipline()
     
+    def __get_lines(self) -> List[WebElement]:
+        table = self._driver.find_element(vars.Course.TABLE, 10, EC.presence_of_element_located)
+        tbody = table.find_element(By.TAG_NAME, 'tbody')
+        lines = tbody.find_elements(By.TAG_NAME, 'tr')
+        return lines
+
     def __extract_discipline_info(self, name: str, code: str):
         wl_row = self._driver.find_element(vars.WORKLOAD, 10, EC.presence_of_element_located)
         return Discipline(
@@ -82,13 +93,11 @@ class Disciplines:
             bibliography=self.__extract_bibliography()
         )
         
-
     def __extract_workload(self, wl_row):
         columns = wl_row.find_elements(By.TAG_NAME, 'td')
         workload = 0
         for i in range(2):
             workload += int(columns[i].text)
-        
         return workload
     
     def __extract_department(self, wl_row):
