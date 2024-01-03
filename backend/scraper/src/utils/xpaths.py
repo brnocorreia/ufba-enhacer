@@ -10,6 +10,7 @@ class Disciplines:
         URL = 'https://siac.ufba.br/SiacWWW/ListarCursosGrade.do?cdGrauCurso=01'
         TABLE = '/html/body/table/tbody/tr[3]/td[2]/center[2]/table'
         OBLIGATEDS = '/html/body/table/tbody/tr[3]/td[2]/div[1]/a[1]'
+        OPTATIVES = '/html/body/table/tbody/tr[3]/td[2]/div[1]/a[2]'
 
     URL = 'https://siac.ufba.br/SiacWWW/ConsultarDisciplinasObrigatoriasInterno.do'
     TABLE = '/html/body/table/tbody/tr[3]/td[2]/center[1]/table'

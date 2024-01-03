@@ -1,4 +1,3 @@
-import os
 import psycopg2
 
 from src.config.environment import settings
