@@ -4,11 +4,16 @@ import (
 	"log"
 
 	"github.com/brnocorreia/ufba-enhacer/internal/configs/database"
+	"github.com/brnocorreia/ufba-enhacer/internal/controller"
+	"github.com/brnocorreia/ufba-enhacer/internal/controller/routes"
+	"github.com/brnocorreia/ufba-enhacer/internal/model/repository"
 	"github.com/brnocorreia/ufba-enhacer/internal/model/repository/entity"
+	"github.com/brnocorreia/ufba-enhacer/internal/model/service"
+	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 )
 
-var models = []interface{}{&entity.Course{}, &entity.Discipline{}, &entity.Prerequisite{}, &entity.CoursesDiscipline{}}
+var models = []interface{}{&entity.Course{}, &entity.Discipline{}, &entity.Prerequisite{}, &entity.CoursesDiscipline{}, &entity.User{}}
 
 func main() {
 	err := godotenv.Load(".env")
@@ -22,6 +27,28 @@ func main() {
 	}
 
 	db.AutoMigrate(models...)
+
+	usersRepository := repository.NewUserRepository(db)
+	userService := service.NewUserDomainService(usersRepository)
+	userController := controller.NewUserControllerInterface(userService)
+
+	router := gin.Default()
+
+	routes.InitUserRoutes(&router.RouterGroup, userController)
+
+	if err := router.Run(":8080"); err != nil {
+		log.Fatal(err)
+	}
+
+	// user := entity.User{
+	// 	Model: gorm.Model{},
+	// 	Name:  "Bruno Correia",
+	// 	Email: "bruninhocorreia2013@gmail.com",
+	// }
+
+	// db.Create(&user)
+
+	// fmt.Println(user.ID)
 
 	// new_course := entity.Course{
 	// 	Code:        3160,
